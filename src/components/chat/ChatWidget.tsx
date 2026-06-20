@@ -6,21 +6,22 @@ import { DefaultChatTransport } from 'ai'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Sparkles, X, Send, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Markdown } from './Markdown'
 import { cn } from '@/lib/utils'
 
-function Bubble({ role, children }: { role: string; children: React.ReactNode }) {
+function Bubble({ role, text }: { role: string; text: string }) {
   const isUser = role === 'user'
   return (
     <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
       <div
         className={cn(
-          'max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
+          'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
           isUser
-            ? 'rounded-br-sm bg-primary text-primary-foreground'
+            ? 'whitespace-pre-wrap rounded-br-sm bg-primary text-primary-foreground'
             : 'rounded-bl-sm bg-secondary text-foreground',
         )}
       >
-        {children}
+        {isUser ? text : <Markdown>{text}</Markdown>}
       </div>
     </div>
   )
@@ -95,17 +96,13 @@ export function ChatWidget({ welcomeMessage }: { welcomeMessage?: string | null 
             </div>
 
             <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
-              <Bubble role="assistant">{welcome}</Bubble>
+              <Bubble role="assistant" text={welcome} />
               {messages.map((m) => {
                 const text = m.parts
                   .map((p) => (p.type === 'text' ? p.text : ''))
                   .join('')
                 if (!text) return null
-                return (
-                  <Bubble key={m.id} role={m.role}>
-                    {text}
-                  </Bubble>
-                )
+                return <Bubble key={m.id} role={m.role} text={text} />
               })}
               {busy && (
                 <div className="flex items-center gap-2 px-1 text-sm text-muted-foreground">
