@@ -67,8 +67,10 @@ export interface Config {
   };
   blocks: {};
   collections: {
-    users: User;
+    properties: Property;
     media: Media;
+    leads: Lead;
+    users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -76,19 +78,25 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
-    users: UsersSelect<false> | UsersSelect<true>;
+    properties: PropertiesSelect<false> | PropertiesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    leads: LeadsSelect<false> | LeadsSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
-    defaultIDType: string;
+    defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'site-settings': SiteSetting;
+  };
+  globalsSelect: {
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -119,10 +127,121 @@ export interface UserAuthOperations {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "properties".
+ */
+export interface Property {
+  id: number;
+  title: string;
+  /**
+   * Gerado automaticamente a partir do título. Pode ser editado.
+   */
+  slug?: string | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  price?: number | null;
+  priceOnRequest?: boolean | null;
+  type: 'apartamento' | 'casa' | 'terreno' | 'comercial';
+  transaction: 'venda' | 'aluguel';
+  status: 'disponivel' | 'reservado' | 'vendido';
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  parking?: number | null;
+  area?: number | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  address?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  amenities?:
+    | (
+        | 'piscina'
+        | 'churrasqueira'
+        | 'academia'
+        | 'portaria24h'
+        | 'elevador'
+        | 'varanda'
+        | 'mobiliado'
+        | 'petfriendly'
+        | 'lazer'
+        | 'condominiofechado'
+      )[]
+    | null;
+  /**
+   * Foto principal usada nos cards e no compartilhamento (WhatsApp/redes).
+   */
+  coverImage?: (number | null) | Media;
+  photos?:
+    | {
+        image: number | Media;
+        id?: string | null;
+      }[]
+    | null;
+  featured?: boolean | null;
+  /**
+   * Sobrescreve título/descrição padrão nas buscas. Se vazio, usa os do imóvel.
+   */
+  seo?: {
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    ogImage?: (number | null) | Media;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  alt: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "leads".
+ */
+export interface Lead {
+  id: number;
+  name?: string | null;
+  contact?: string | null;
+  interestedProperties?: (number | Property)[] | null;
+  conversationSummary?: string | null;
+  source?: ('ai-chat' | 'contact-form') | null;
+  status?: ('novo' | 'contatado' | 'fechado') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
-  id: string;
+  id: number;
+  name?: string | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -144,29 +263,10 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: string;
-  alt: string;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
-  id: string;
+  id: number;
   key: string;
   data:
     | {
@@ -183,20 +283,28 @@ export interface PayloadKv {
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
-  id: string;
+  id: number;
   document?:
     | ({
-        relationTo: 'users';
-        value: string | User;
+        relationTo: 'properties';
+        value: number | Property;
       } | null)
     | ({
         relationTo: 'media';
-        value: string | Media;
+        value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'leads';
+        value: number | Lead;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: number | User;
       } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   updatedAt: string;
   createdAt: string;
@@ -206,10 +314,10 @@ export interface PayloadLockedDocument {
  * via the `definition` "payload-preferences".
  */
 export interface PayloadPreference {
-  id: string;
+  id: number;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   key?: string | null;
   value?:
@@ -229,7 +337,7 @@ export interface PayloadPreference {
  * via the `definition` "payload-migrations".
  */
 export interface PayloadMigration {
-  id: string;
+  id: number;
   name?: string | null;
   batch?: number | null;
   updatedAt: string;
@@ -237,25 +345,44 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users_select".
+ * via the `definition` "properties_select".
  */
-export interface UsersSelect<T extends boolean = true> {
-  updatedAt?: T;
-  createdAt?: T;
-  email?: T;
-  resetPasswordToken?: T;
-  resetPasswordExpiration?: T;
-  salt?: T;
-  hash?: T;
-  loginAttempts?: T;
-  lockUntil?: T;
-  sessions?:
+export interface PropertiesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  description?: T;
+  price?: T;
+  priceOnRequest?: T;
+  type?: T;
+  transaction?: T;
+  status?: T;
+  bedrooms?: T;
+  bathrooms?: T;
+  parking?: T;
+  area?: T;
+  neighborhood?: T;
+  city?: T;
+  address?: T;
+  lat?: T;
+  lng?: T;
+  amenities?: T;
+  coverImage?: T;
+  photos?:
     | T
     | {
+        image?: T;
         id?: T;
-        createdAt?: T;
-        expiresAt?: T;
       };
+  featured?: T;
+  seo?:
+    | T
+    | {
+        metaTitle?: T;
+        metaDescription?: T;
+        ogImage?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -274,6 +401,43 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "leads_select".
+ */
+export interface LeadsSelect<T extends boolean = true> {
+  name?: T;
+  contact?: T;
+  interestedProperties?: T;
+  conversationSummary?: T;
+  source?: T;
+  status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users_select".
+ */
+export interface UsersSelect<T extends boolean = true> {
+  name?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -314,6 +478,134 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  hero?: {
+    headline?: string | null;
+    subheadline?: string | null;
+    ctaText?: string | null;
+    backgroundImage?: (number | null) | Media;
+  };
+  about?: {
+    bio?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
+    photo?: (number | null) | Media;
+    creci?: string | null;
+  };
+  contact?: {
+    phone?: string | null;
+    whatsapp?: string | null;
+    email?: string | null;
+    address?: string | null;
+    mapEmbedUrl?: string | null;
+  };
+  social?: {
+    instagram?: string | null;
+    facebook?: string | null;
+    linkedin?: string | null;
+  };
+  testimonials?:
+    | {
+        author?: string | null;
+        text?: string | null;
+        rating?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  seoDefaults?: {
+    siteName?: string | null;
+    defaultTitle?: string | null;
+    defaultDescription?: string | null;
+    defaultOgImage?: (number | null) | Media;
+  };
+  aiAssistant?: {
+    enabled?: boolean | null;
+    welcomeMessage?: string | null;
+    brokerNotifyWhatsapp?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  hero?:
+    | T
+    | {
+        headline?: T;
+        subheadline?: T;
+        ctaText?: T;
+        backgroundImage?: T;
+      };
+  about?:
+    | T
+    | {
+        bio?: T;
+        photo?: T;
+        creci?: T;
+      };
+  contact?:
+    | T
+    | {
+        phone?: T;
+        whatsapp?: T;
+        email?: T;
+        address?: T;
+        mapEmbedUrl?: T;
+      };
+  social?:
+    | T
+    | {
+        instagram?: T;
+        facebook?: T;
+        linkedin?: T;
+      };
+  testimonials?:
+    | T
+    | {
+        author?: T;
+        text?: T;
+        rating?: T;
+        id?: T;
+      };
+  seoDefaults?:
+    | T
+    | {
+        siteName?: T;
+        defaultTitle?: T;
+        defaultDescription?: T;
+        defaultOgImage?: T;
+      };
+  aiAssistant?:
+    | T
+    | {
+        enabled?: T;
+        welcomeMessage?: T;
+        brokerNotifyWhatsapp?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
